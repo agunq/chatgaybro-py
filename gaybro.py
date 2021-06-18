@@ -1,9 +1,13 @@
+#authot github @agunq (im not gay :v)
+
 import time
 import re
 import json
 import random
 import base64
 
+#pip install requests
+#pip install websocket-client
 import requests
 import websocket
 from threading import Thread, Event
