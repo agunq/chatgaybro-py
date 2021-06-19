@@ -1,77 +1,231 @@
-import gaybro
-import requests
-import json
-import re
-import random
+#authot github @agunq (im not gay :v)
+
 import time
+import re
+import json
+import random
+import base64
+
+from threading import Thread
+
+#pip install requests
+#pip install websocket-client
+import requests
+import websocket
+
+def strip_html(msg):
+    msg = re.sub("<\/?[^>]*>", "", msg)
+    return msg
 
 
-def youtube(args):
-    args = args.replace(" ", "+")
-    r = requests.get("https://www.youtube.com/results?search_query=" + args)
-    r = re.findall('{"videoRenderer":(.*?)(false}]}|}]}}}]})', r.text)
-    d = json.loads(r[0][0] + r[0][1])
-    t = d["title"]["runs"][0]["text"]
-    u = "https://youtu.be/" + d["videoId"]
-    p = d["publishedTimeText"]["simpleText"]
-    l = d["lengthText"]["simpleText"]
-    v = d["viewCountText"]["simpleText"]
-    return "%s \r | %s | %s | %s | %s" % (t, p, l, v, u), u
+class Group:
 
-def waifupics(args):
-    y = ["waifu","neko","shinobu","megumin","bully","cuddle","cry","hug","awoo","kiss","lick","pat","smug","bonk","yeet","blush","smile","wave","highfive","handhold","nom","bite","glomp","slap","kill","kick","happy","wink","poke","dance","cringe"]
-    try:
-        p = {"exclude":[""]}
-        if args.lower() in y:
-            e = args.lower()
-        else:
-            e = "waifu"
-        h = {"referer": "https://waifu.pics/"}
-        r = requests.post("https://api.waifu.pics/many/sfw/" + e, headers = h, data = p)
+    def __init__(self, mgr, group):
+        self._mgr = mgr
+        self._group = group
+        self._token = None
+        self._csrfToken = None
+        self._signature = None
+        self._clientId = None
+        self._chatId = None
+        self._userId = None
+
+        self.counter = 0
+        self.title = ""
+        self.group = group
+
+        self._getCsrfToken()
+        self._getClientId()
+        self._getChatId()
         
-        return (e, r.json()["files"][0])
+
+    def disconnect(self):
+        self._websock.close()
+
+    def connect(self):
         
-    except:
-        return "please try another type: %s" % ", ".join(y), ""
-    
+        self._websock = websocket.WebSocketApp("wss://ws.chatbro.com/ws?chatId=%s&clientId=%s" % (self._chatId, self._clientId), on_message=self._on_message)
+        self._run_th()
+        self._getToken()
+        self.loginAnon(self._mgr._anonName)
 
-    
-class Gay(gaybro.GayBro):
-
-
-    def onMessage(self, group, user, message):
-
-        if user == group._mgr._anonName: return
+    def _run(self):
+        self._websock.run_forever(origin = "https://chatbro.com/")
         
-        print(group.group, group.title, user, message)
+    def _run_th(self):
+        self.thread = Thread(target = self._run, args = ())
+        self.thread.setDaemon(True)
+        self.thread.start()
 
-        if message == "selamat pagi":
-            r = ["pagi juga", "selamat pagi", "hai :d"]
-            t = random.choice(r)
-            group.message(t + " @%s" % user)
+    def _callEvent(self, evt, *args, **kw): 
+        getattr(self._mgr, evt)(self, *args, **kw)
 
-        if message[0] == ",":
-            cmds = message[1:].split(" ", 1)
-            if len(cmds) >1:
-                cmd, args = cmds
-            else:
-                cmd, args = cmds[0], ""
+    def _on_message(self, websock, message):
+        data = json.loads(message)
 
-        if cmd == "cmds":
-            group.message("!yt, !sfw, !say")
-
-        if cmd == "sfw":
-            m, l = waifupics(args)
-            group.message(m, l)
-
-        if cmd == "say":
-            if args:
-                group.message(args)
+        
+        if data["type"] == "loginMe":
+            self._userId = data["user"]["id"]
+        
+        if data["type"] == "count":
+            self.counter = data["counters"][0]
             
-        if cmd == "yt":
-            t, l = youtube(args)
-            group.message("%s @%s" % (t, user), l)
+        if data["type"] == "messageReceived":
+           _data = strip_html(data["html"])[9:].split("         ", 1)
+           user = _data[0]
+           msg = _data[1][:-1]
+           if msg[0] == " ":
+               msg = msg[1:]
+           
+           self._callEvent("onMessage", user, msg)
 
-if __name__ == "__main__":
-    Gay.easy_start(["186jN"], "HentaiUwU")
+           #print(self._userId)
+               
+    def _getClientId(self):
+        self._clientId = float("0." + str(random.randint(10 ** 15, 10 ** 16)))
+
+        
+    def _getChatId(self):
+        params = {"embedChatsParameters":
+                  [{"encodedChatId":self._group,
+                    "containerDivId":"chat",
+                    "allowMoveChat":False,
+                    "allowMinimizeChat":False,
+                    "chatState":"maximized",
+                    "siteDomain":"chatbro.com",
+                    "chatHeight":"100%",
+                    "chatWidth":"100%",
+                    "allowUploadFile":True,
+                    "signature":self._signature}],
+                  "lang":"en-US",
+                  "needLoadCode":True,
+                  "embedParamsVersion":"8",
+                  "chatbroScriptVersion":"a2e7f4b7eafef0c23e"}
+        params = json.dumps(params)
+        p = base64.b64encode(params.encode("ascii"))
+        r = requests.get("https://www.chatbro.com/embed.js?" + p.decode("ascii"))
+        
+        chatid = re.search("\"chatId\": (.*?),", r.text)
+        if chatid:
+            self._chatId = int(chatid.group(1))
+            print(self._chatId)
+        
+
+    def _getCsrfToken(self):
+        h = requests.get("https://www.chatbro.com/en/" + self._group)
+        if "Set-Cookie" in h.headers:
+            cookie = h.headers["Set-Cookie"]
+            token = re.search("csrfToken=(.*?);", cookie)
+            if token:
+                token = token.group(0)
+                self._csrfToken = token
+                #print(self._csrfToken)
+                
+        t = h.text
+        loader = re.search("signature: '(.*?)'", t)
+        if loader:
+            self._signature = loader.group(1)
+            
+        title = re.search("<title> (.*?) </title>", t)
+        if title:
+            self.title = title.group(1)
+            
+                
+    def _getToken(self):
+        h = requests.get("https://www.chatbro.com/get_csrf_token/")
+        if "Set-Cookie" in h.headers:
+            cookie = h.headers["Set-Cookie"]
+            token = re.search("JSESSIONID=(.*?);", cookie)
+            if token:
+                token = token.group(0)
+                self._token = token
+            #print(self._token)
+            return token
+
+    def loginAnon(self, name = "AnonUwU"):
     
+        data = {"name": name,
+                "clientId": self._clientId,
+                "chatId": self._chatId,
+                "cr": "https://www.chatbro.com/en/%s/" % self._group
+                }
+        headers = {"referer": "https://www.chatbro.com/en/%s/" % self._group,
+                   "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)}
+        
+        r = requests.get("https://www.chatbro.com/guest_login/", headers = headers, params = data)
+       
+
+    def message(self, msg, emb = None):
+        
+        ti = int(time.time() * 1000)
+        if emb:
+            if "youtube.com" in emb or "youtu.be" in emb:
+                ytid = re.search("^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*", emb)
+                if ytid:
+                    ytid = ytid.group(7)
+                    att = [{"type":"video",
+                            "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
+                            "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
+                            "playerUrl":"https://www.youtube.com/embed/%s" % ytid}]
+                    
+            else:
+                img = emb.split("//", 1)[1]
+                att = [{"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img}]
+        else:
+            att = []
+        
+        payload = {"encodedChatId":self._group,
+                   "body":{"text":msg,"attachments": att},
+                   "chatLanguage":"EN","siteDomain":"chatbro.com","timestamp": ti,
+                   "userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36",
+                   "mobile":False,
+                   "connType":"ws",
+                   "ud": self._userId,
+                   "authorChatClientId": self._clientId,
+                   "signature":self._signature,"permissions":[]}
+        
+        r = requests.post('https://www.chatbro.com/send_message/', data=json.dumps(payload),
+                          headers={"referer": "https://www.chatbro.com/en/%s/" % self._group,
+                                    "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)})
+
+        if r.text != "{}":
+            print(r.text)
+
+class GayBro:
+
+    def __init__(self, name = "AnonUwU"):
+        self._groups = {}
+        self._anonName = name
+        self._running = False
+
+    def stop(self):
+        self._running = False
+
+    def start(self):
+        self._running = True
+        
+        while self._running:
+            time.sleep(30)
+            pass
+        
+    @classmethod    
+    def easy_start(cl, ids, name = "AnonUwU"):
+        self = cl(name = name)
+        for _id in ids:
+            self.joinGroup(_id)
+        self.start()
+        
+
+    def onMessage(self, group, user, msg):
+        pass
+
+    def joinGroup(self, _id):  
+        if _id not in self._groups:
+            self._groups[_id] = Group(mgr = self, group = _id)
+            self._groups[_id].connect()
+
+    def leaveGroup(self, _id):
+        if _id in self._groups:
+            self._groups[_id].disconnect()
+
+
