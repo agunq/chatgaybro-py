@@ -3,6 +3,7 @@ import requests
 import json
 import re
 import random
+import time
 
 
 def youtube(args):
@@ -73,8 +74,9 @@ class Gay(gaybro.GayBro):
 
 if __name__ == "__main__":
     Gay.easy_start(["186jN", "086N9"])
+    
     #for blocking :d
     while True:
+        time.sleep(10)
         pass
-
 
