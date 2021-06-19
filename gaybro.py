@@ -6,11 +6,12 @@ import json
 import random
 import base64
 
+from threading import Thread
+
 #pip install requests
 #pip install websocket-client
 import requests
 import websocket
-from threading import Thread, Event
 
 def strip_html(msg):
     msg = re.sub("<\/?[^>]*>", "", msg)
@@ -153,7 +154,6 @@ class Group:
                    "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)}
         r = requests.get("https://www.chatbro.com/guest_login/", headers = headers, params = data)
        
-        
 
     def message(self, msg):
         
@@ -171,8 +171,9 @@ class Group:
         r = requests.post('https://www.chatbro.com/send_message/', data=json.dumps(payload),
                           headers={"referer": "https://www.chatbro.com/en/%s/" % self._group,
                                     "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)})
-                                 
-        print(r.text)
+
+        if r.text != "{}":
+            print(r.text)
 
 class GayBro:
 
