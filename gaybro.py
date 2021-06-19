@@ -27,13 +27,15 @@ class Group:
         self._signature = None
         self._clientId = None
         self._chatId = None
-        
-        
-        self._getToken()
+        self._userId = None
+
+        self.counter = 0
+        self.title = ""
+        self.group = group
+
         self._getCsrfToken()
         self._getClientId()
         self._getChatId()
-        self.loginAnon(self._mgr._anonName)
         
 
     def disconnect(self):
@@ -43,6 +45,8 @@ class Group:
         
         self._websock = websocket.WebSocketApp("wss://ws.chatbro.com/ws?chatId=%s&clientId=%s" % (self._chatId, self._clientId), on_message=self._on_message)
         self._run_th()
+        self._getToken()
+        self.loginAnon(self._mgr._anonName)
 
     def _run(self):
         self._websock.run_forever(origin = "https://chatbro.com/")
@@ -57,7 +61,16 @@ class Group:
 
     def _on_message(self, websock, message):
         data = json.loads(message)
-        if "html" in data:
+
+        #print(data)
+        
+        if data["type"] == "loginMe":
+            self._userId = data["user"]["id"]
+        
+        if data["type"] == "count":
+            self.counter = data["counters"][0]
+            
+        if data["type"] == "messageReceived":
            _data = strip_html(data["html"])[9:].split("         ", 1)
            user = _data[0]
            msg = _data[1][:-1]
@@ -65,11 +78,13 @@ class Group:
                msg = msg[1:]
            
            self._callEvent("onMessage", user, msg)
+
+           #print(self._userId)
                
     def _getClientId(self):
         self._clientId = float("0." + str(random.randint(10 ** 15, 10 ** 16)))
-        
 
+        
     def _getChatId(self):
         params = {"embedChatsParameters":
                   [{"encodedChatId":self._group,
@@ -111,6 +126,10 @@ class Group:
         if loader:
             self._signature = loader.group(1)
             
+        title = re.search("<title> (.*?) </title>", t)
+        if title:
+            self.title = title.group(1)
+            
                 
     def _getToken(self):
         h = requests.get("https://www.chatbro.com/get_csrf_token/")
@@ -146,7 +165,8 @@ class Group:
                    "userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36",
                    "mobile":False,
                    "connType":"ws",
-                   
+                   "ud": self._userId,
+                   "authorChatClientId": self._clientId,
                    "signature":self._signature,"permissions":[]}
         r = requests.post('https://www.chatbro.com/send_message/', data=json.dumps(payload),
                           headers={"referer": "https://www.chatbro.com/en/%s/" % self._group,
@@ -178,6 +198,5 @@ class GayBro:
     def leaveGroup(self, _id):
         if _id in self._groups:
             self._groups[_id].disconnect()
-
 
 
