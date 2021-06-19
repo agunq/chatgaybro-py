@@ -16,7 +16,7 @@ def youtube(args):
     p = d["publishedTimeText"]["simpleText"]
     l = d["lengthText"]["simpleText"]
     v = d["viewCountText"]["simpleText"]
-    return "%s \r | %s | %s | %s | %s" % (t, p, l, v, u)
+    return "%s \r | %s | %s | %s | %s" % (t, p, l, v, u), u
 
 def waifupics(args):
     y = ["waifu","neko","shinobu","megumin","bully","cuddle","cry","hug","awoo","kiss","lick","pat","smug","bonk","yeet","blush","smile","wave","highfive","handhold","nom","bite","glomp","slap","kill","kick","happy","wink","poke","dance","cringe"]
@@ -50,7 +50,7 @@ class Gay(gaybro.GayBro):
             t = random.choice(r)
             group.message(t + " @%s" % user)
 
-        if message[0] == "!":
+        if message[0] == ",":
             cmds = message[1:].split(" ", 1)
             if len(cmds) >1:
                 cmd, args = cmds
@@ -69,14 +69,9 @@ class Gay(gaybro.GayBro):
                 group.message(args)
             
         if cmd == "yt":
-            d = youtube(args)
-            group.message("%s @%s" % (d, user))
+            t, l = youtube(args)
+            group.message("%s @%s" % (t, user), l)
 
 if __name__ == "__main__":
-    Gay.easy_start(["186jN", "086N9"], "HentaiUwU")
+    Gay.easy_start(["186jN"], "HentaiUwU")
     
-    #for blocking :d
-    while True:
-        time.sleep(10)
-        pass
-
