@@ -63,7 +63,6 @@ class Group:
     def _on_message(self, websock, message):
         data = json.loads(message)
 
-        #print(data)
         
         if data["type"] == "loginMe":
             self._userId = data["user"]["id"]
@@ -152,15 +151,20 @@ class Group:
                 }
         headers = {"referer": "https://www.chatbro.com/en/%s/" % self._group,
                    "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)}
+        
         r = requests.get("https://www.chatbro.com/guest_login/", headers = headers, params = data)
        
 
-    def message(self, msg):
+    def message(self, msg, img = None):
         
         ti = int(time.time() * 1000)
-    
+        if img:
+            img = img.split("//", 1)[1]
+            att = [{"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img}]
+        else:
+            att = []
         payload = {"encodedChatId":self._group,
-                   "body":{"text":msg,"attachments":[]},
+                   "body":{"text":msg,"attachments": att},
                    "chatLanguage":"EN","siteDomain":"chatbro.com","timestamp": ti,
                    "userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36",
                    "mobile":False,
@@ -168,6 +172,7 @@ class Group:
                    "ud": self._userId,
                    "authorChatClientId": self._clientId,
                    "signature":self._signature,"permissions":[]}
+        
         r = requests.post('https://www.chatbro.com/send_message/', data=json.dumps(payload),
                           headers={"referer": "https://www.chatbro.com/en/%s/" % self._group,
                                     "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)})
