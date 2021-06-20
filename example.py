@@ -50,7 +50,7 @@ class Gay(gaybro.GayBro):
             t = random.choice(r)
             group.message(t + " @%s" % user)
 
-        if message[0] == ",":
+        if message[0] == "!":
             cmds = message[1:].split(" ", 1)
             if len(cmds) >1:
                 cmd, args = cmds
