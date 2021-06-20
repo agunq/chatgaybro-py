@@ -200,6 +200,8 @@ class GayBro:
 
     def stop(self):
         self._running = False
+        for _id in ids:
+            self.leaveGroup(_id)
 
     def start(self):
         self._running = True
@@ -214,13 +216,23 @@ class GayBro:
         for _id in ids:
             self.joinGroup(_id)
         self.start()
-        
+
+    @classmethod    
+    def easy_start_non_block(cl, ids, name = "AnonUwU"):
+        self = cl(name = name)
+        for _id in ids:
+            self.joinGroup(_id)
+        self._running = True
 
     def onMessage(self, group, user, msg):
         pass
 
     def joinGroup(self, _id):  
         if _id not in self._groups:
+            self._groups[_id] = Group(mgr = self, group = _id)
+            self._groups[_id].connect()
+        else:
+            self.leaveGroup(_id)
             self._groups[_id] = Group(mgr = self, group = _id)
             self._groups[_id].connect()
 
