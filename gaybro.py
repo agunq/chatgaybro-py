@@ -159,18 +159,35 @@ class Group:
         
         ti = int(time.time() * 1000)
         if emb:
-            if "youtube.com" in emb or "youtu.be" in emb:
-                ytid = re.search("^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*", emb)
-                if ytid:
-                    ytid = ytid.group(7)
-                    att = [{"type":"video",
-                            "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
-                            "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
-                            "playerUrl":"https://www.youtube.com/embed/%s" % ytid}]
-                    
-            else:
-                img = emb.split("//", 1)[1]
-                att = [{"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img}]
+            if isinstance(emb, list):
+                att = []
+                for _emb in emb:
+                    if "youtube.com" in _emb or "youtu.be" in _emb:
+                        ytid = re.search("^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*", _emb)
+                        if ytid:
+                            ytid = ytid.group(7)
+                            att.append( {"type":"video",
+                                    "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
+                                    "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
+                                    "playerUrl":"https://www.youtube.com/embed/%s" % ytid} )
+                        
+                    else:
+                        img = _emb.split("//", 1)[1]
+                        att.append( {"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img} )
+                
+            elif isinstance(emb, str):
+                if "youtube.com" in emb or "youtu.be" in emb:
+                    ytid = re.search("^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*", emb)
+                    if ytid:
+                        ytid = ytid.group(7)
+                        att = [{"type":"video",
+                                "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
+                                "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
+                                "playerUrl":"https://www.youtube.com/embed/%s" % ytid}]
+                        
+                else:
+                    img = emb.split("//", 1)[1]
+                    att = [{"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img}]
         else:
             att = []
         
