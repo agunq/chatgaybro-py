@@ -73,5 +73,6 @@ class Gay(gaybro.GayBro):
             group.message("%s @%s" % (t, user), l)
 
 if __name__ == "__main__":
-    Gay.easy_start_non_block(["186jN"], "HentaiUwU")
+    #Gay.easy_start_non_block(["186jN"], "HentaiUwU")
+    Gay.easy_start(["186jN"], "HentaiUwU")
     
