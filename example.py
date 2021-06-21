@@ -28,8 +28,8 @@ def waifupics(args):
             e = "waifu"
         h = {"referer": "https://waifu.pics/"}
         r = requests.post("https://api.waifu.pics/many/sfw/" + e, headers = h, data = p)
-        
-        return (e, r.json()["files"][0])
+
+        return (e, r.json()["files"])
         
     except:
         return "please try another type: %s" % ", ".join(y), ""
@@ -62,7 +62,7 @@ class Gay(gaybro.GayBro):
 
         if cmd == "sfw":
             m, l = waifupics(args)
-            group.message(m, l)
+            group.message(m, l[0:4])
 
         if cmd == "say":
             if args:
@@ -73,5 +73,5 @@ class Gay(gaybro.GayBro):
             group.message("%s @%s" % (t, user), l)
 
 if __name__ == "__main__":
-    Gay.easy_start(["186jN"], "HentaiUwU")
+    Gay.easy_start_non_block(["186jN"], "HentaiUwU")
     
