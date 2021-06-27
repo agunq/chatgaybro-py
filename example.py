@@ -73,6 +73,7 @@ class Gay(gaybro.GayBro):
             group.message("%s @%s" % (t, user), l)
 
 if __name__ == "__main__":
+    #this will connect you to https://www.chatbro.com/en/186jN/
     #Gay.easy_start_non_block(["186jN"], "HentaiUwU")
     Gay.easy_start(["186jN"], "HentaiUwU")
     
