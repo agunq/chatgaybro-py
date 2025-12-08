@@ -9,14 +9,20 @@ import time
 def youtube(args):
     args = args.replace(" ", "+")
     r = requests.get("https://www.youtube.com/results?search_query=" + args)
-    r = re.findall('{"videoRenderer":(.*?)(false}]}|}]}}}]})', r.text)
-    d = json.loads(r[0][0] + r[0][1])
+    r = re.findall(r'{"videoRenderer":{"videoId":"(.*?)","thumbnail":(.*?),"title":{"runs":(.*?),"accessibility":{"accessibilityData":{"label":"(.*?)"}}},"longBylineText":(.*?),"publishedTimeText":(.*?),"lengthText":{"accessibility":{"accessibilityData":{"label":"(.*?)"}},"simpleText":"(.*?)"},"viewCountText":{"simpleText":"(.*?)"},"navigationEndpoint"', r.text)
+
+    j = (
+            '{"videoRenderer":{"videoId":"%s","thumbnail":%s,"title":{"runs":%s,"accessibility":{"accessibilityData":{"label":"%s"}}},"longBylineText":%s,"publishedTimeText":%s,"lengthText":{"accessibility":{"accessibilityData":{"label":"%s"}},"simpleText":"%s"},"viewCountText":{"simpleText":"%s"}}}'
+            % r[0]
+        )
+    d = json.loads(j)["videoRenderer"]
     t = d["title"]["runs"][0]["text"]
     u = "https://youtu.be/" + d["videoId"]
     p = d["publishedTimeText"]["simpleText"]
     l = d["lengthText"]["simpleText"]
     v = d["viewCountText"]["simpleText"]
     return "%s \r | %s | %s | %s | %s" % (t, p, l, v, u), u
+
 
 def waifupics(args):
     y = ["waifu","neko","shinobu","megumin","bully","cuddle","cry","hug","awoo","kiss","lick","pat","smug","bonk","yeet","blush","smile","wave","highfive","handhold","nom","bite","glomp","slap","kill","kick","happy","wink","poke","dance","cringe"]
@@ -76,4 +82,5 @@ if __name__ == "__main__":
     #this will connect you to https://www.chatbro.com/en/186jN/
     #Gay.easy_start_non_block(["186jN"], "HentaiUwU")
     Gay.easy_start(["186jN"], "HentaiUwU")
+    #print(youtube("naruto"))
     
