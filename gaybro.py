@@ -61,9 +61,10 @@ class Group:
         getattr(self._mgr, evt)(self, *args, **kw)
 
     def _on_message(self, websock, message):
+
         data = json.loads(message)
 
-        
+        #print(data)
         if data["type"] == "loginMe":
             self._userId = data["user"]["id"]
         
@@ -71,9 +72,10 @@ class Group:
             self.counter = data["counters"][0]
             
         if data["type"] == "messageReceived":
-           _data = strip_html(data["html"])[9:].split("         ", 1)
+           _data = strip_html(data["html"]).split(maxsplit=1)
+           print(_data)
            user = _data[0]
-           msg = _data[1][:-1]
+           msg = _data[1]
            if msg[0] == " ":
                msg = msg[1:]
            
