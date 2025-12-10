@@ -81,6 +81,6 @@ class Gay(gaybro.GayBro):
 if __name__ == "__main__":
     #this will connect you to https://www.chatbro.com/en/186jN/
     #Gay.easy_start_non_block(["186jN"], "HentaiUwU")
-    Gay.easy_start(["186jN"], "HentaiUwU")
+    Gay.easy_start(["https://www.chatbro.com/en/186jN"], "HentaiUwU")
     #print(youtube("naruto"))
     
