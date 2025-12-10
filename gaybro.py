@@ -34,30 +34,35 @@ class Group:
         self.title = ""
         self.group = group
 
+        self._getChatId()
         self._getCsrfToken()
         self._getClientId()
-        self._getChatId()
-        
+
+
 
     def disconnect(self):
         self._websock.close()
 
     def connect(self):
-        
+
         self._websock = websocket.WebSocketApp("wss://ws.chatbro.com/ws?chatId=%s&clientId=%s" % (self._chatId, self._clientId), on_message=self._on_message)
         self._run_th()
         self._getToken()
         self.loginAnon(self._mgr._anonName)
 
+        #if self.group in self._mgr._groups:
+        #    self._mgr._groups[self._group] = self._mgr._groups.pop(self.group)
+        #    self.group = self._group
+
     def _run(self):
         self._websock.run_forever(origin = "https://chatbro.com/")
-        
+
     def _run_th(self):
         self.thread = Thread(target = self._run, args = ())
         self.thread.setDaemon(True)
         self.thread.start()
 
-    def _callEvent(self, evt, *args, **kw): 
+    def _callEvent(self, evt, *args, **kw):
         getattr(self._mgr, evt)(self, *args, **kw)
 
     def _on_message(self, websock, message):
@@ -67,10 +72,10 @@ class Group:
         #print(data)
         if data["type"] == "loginMe":
             self._userId = data["user"]["id"]
-        
+
         if data["type"] == "count":
             self.counter = data["counters"][0]
-            
+
         if data["type"] == "messageReceived":
            _data = strip_html(data["html"]).split(maxsplit=1)
            print(_data)
@@ -78,40 +83,45 @@ class Group:
            msg = _data[1]
            if msg[0] == " ":
                msg = msg[1:]
-           
+
            self._callEvent("onMessage", user, msg)
 
            #print(self._userId)
-               
+
     def _getClientId(self):
         self._clientId = float("0." + str(random.randint(10 ** 15, 10 ** 16)))
 
-        
+
     def _getChatId(self):
-        params = {"embedChatsParameters":
-                  [{"encodedChatId":self._group,
-                    "containerDivId":"chat",
-                    "allowMoveChat":False,
-                    "allowMinimizeChat":False,
-                    "chatState":"maximized",
-                    "siteDomain":"chatbro.com",
-                    "chatHeight":"100%",
-                    "chatWidth":"100%",
-                    "allowUploadFile":True,
-                    "signature":self._signature}],
-                  "lang":"en-US",
-                  "needLoadCode":True,
-                  "embedParamsVersion":"8",
-                  "chatbroScriptVersion":"a2e7f4b7eafef0c23e"}
+        if "chatbro" in self._group:
+            url = self._group
+        else:
+            url = "https://www.chatbro.com/en/" + self._group
+
+        r = requests.get(url)
+        params = re.search("} ChatbroLoader\((.*?)\);<\/script>", r.text)
+        if params:
+            params = params.group(1)
+            js_text = re.sub(r'(\b[a-zA-Z_][a-zA-Z0-9_]*\b)\s*:', r'"\1":', params)
+            js_text = re.sub(r"'", r'"', js_text)
+            js_text = re.sub(r",(\s*[}\]])", r"\1", js_text)
+            params = json.loads(js_text)
+            self._group = params["encodedChatId"]
+
+
+        params = {"embedChatsParameters":[params],"lang":"en-US","needLoadCode":True}
         params = json.dumps(params)
+
         p = base64.b64encode(params.encode("ascii"))
+
+
         r = requests.get("https://www.chatbro.com/embed.js?" + p.decode("ascii"))
-        
+
         chatid = re.search("\"chatId\": (.*?),", r.text)
         if chatid:
             self._chatId = int(chatid.group(1))
             print(self._chatId)
-        
+
 
     def _getCsrfToken(self):
         h = requests.get("https://www.chatbro.com/en/" + self._group)
@@ -122,17 +132,17 @@ class Group:
                 token = token.group(0)
                 self._csrfToken = token
                 #print(self._csrfToken)
-                
+
         t = h.text
         loader = re.search("signature: '(.*?)'", t)
         if loader:
             self._signature = loader.group(1)
-            
+
         title = re.search("<title> (.*?) </title>", t)
         if title:
             self.title = title.group(1)
-            
-                
+
+
     def _getToken(self):
         h = requests.get("https://www.chatbro.com/get_csrf_token/")
         if "Set-Cookie" in h.headers:
@@ -145,7 +155,7 @@ class Group:
             return token
 
     def loginAnon(self, name = "AnonUwU"):
-    
+
         data = {"name": name,
                 "clientId": self._clientId,
                 "chatId": self._chatId,
@@ -153,12 +163,12 @@ class Group:
                 }
         headers = {"referer": "https://www.chatbro.com/en/%s/" % self._group,
                    "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)}
-        
+
         r = requests.get("https://www.chatbro.com/guest_login/", headers = headers, params = data)
-       
+
 
     def message(self, msg, emb = None):
-        
+
         ti = int(time.time() * 1000)
         if emb:
             if isinstance(emb, list):
@@ -172,11 +182,11 @@ class Group:
                                     "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
                                     "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
                                     "playerUrl":"https://www.youtube.com/embed/%s" % ytid} )
-                        
+
                     else:
                         img = _emb.split("//", 1)[1]
                         att.append( {"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img} )
-                
+
             elif isinstance(emb, str):
                 if "youtube.com" in emb or "youtu.be" in emb:
                     ytid = re.search("^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*", emb)
@@ -186,13 +196,13 @@ class Group:
                                 "title":"","thumbnailPhotoUrl":"https://img.youtube.com/vi/%s/1.jpg" % ytid,
                                 "originalPhotoUrl":"https://img.youtube.com/vi/%s/0.jpg" % ytid,
                                 "playerUrl":"https://www.youtube.com/embed/%s" % ytid}]
-                        
+
                 else:
                     img = emb.split("//", 1)[1]
                     att = [{"type":"photo","title":"","thumbnailPhotoUrl":"//" + img, "originalPhotoUrl":"//" + img}]
         else:
             att = []
-        
+
         payload = {"encodedChatId":self._group,
                    "body":{"text":msg,"attachments": att},
                    "chatLanguage":"EN","siteDomain":"chatbro.com","timestamp": ti,
@@ -202,7 +212,7 @@ class Group:
                    "ud": self._userId,
                    "authorChatClientId": self._clientId,
                    "signature":self._signature,"permissions":[]}
-        
+
         r = requests.post('https://www.chatbro.com/send_message/', data=json.dumps(payload),
                           headers={"referer": "https://www.chatbro.com/en/%s/" % self._group,
                                     "Cookie": "siteLanguage=EN; %s %s" % (self._token, self._csrfToken)})
@@ -223,20 +233,22 @@ class GayBro:
             self.leaveGroup(_id)
 
     def start(self):
+
         self._running = True
-        
+
         while self._running:
             time.sleep(30)
+
             pass
-        
-    @classmethod    
+
+    @classmethod
     def easy_start(cl, ids, name = "AnonUwU"):
         self = cl(name = name)
         for _id in ids:
             self.joinGroup(_id)
         self.start()
 
-    @classmethod    
+    @classmethod
     def easy_start_non_block(cl, ids, name = "AnonUwU"):
         self = cl(name = name)
         for _id in ids:
@@ -246,7 +258,7 @@ class GayBro:
     def onMessage(self, group, user, msg):
         pass
 
-    def joinGroup(self, _id):  
+    def joinGroup(self, _id):
         if _id not in self._groups:
             self._groups[_id] = Group(mgr = self, group = _id)
             self._groups[_id].connect()
